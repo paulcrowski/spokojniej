@@ -1,0 +1,24 @@
+Failure [DELETE_FAILED_INTERNAL_ERROR]
+
+Serving...
+Performing Incremental Install
+Success
+Install command complete in 108 ms
+All files should be loaded. Notifying the device.
+
+Serving...
+Performing Incremental Install
+Success
+Install command complete in 154 ms
+All files should be loaded. Notifying the device.
+
+SEEDED: old app database with two events
+
+
+Serving...
+Performing Incremental Install
+Success
+Install command complete in 71 ms
+All files should be loaded. Notifying the device.
+
+PASS: 10 APK upgrade and migration checks

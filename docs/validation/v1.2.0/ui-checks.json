@@ -1,0 +1,26 @@
+{
+  "passed": [
+    "pause immediately accessible on home",
+    "positive and difficult choices saved together",
+    "positive choices survive actual conflict entry",
+    "daily choices survive process restart",
+    "editing only removes selected choice",
+    "steps visible in history",
+    "gratitude visible beside difficult day",
+    "native home-screen widget offers break",
+    "widget opens break directly with return time",
+    "leaving and returning keeps the break open",
+    "break end time survives leaving app without resetting",
+    "can switch to short pause",
+    "short pause completes on real screen",
+    "preventive reminder replaces evening assessment",
+    "actual gentle notification displayed",
+    "native document export succeeds",
+    "exported JSON contains actual conflict, gratitude, small step and difficult feeling",
+    "backup preview includes new daily choices",
+    "restore in fresh app succeeds",
+    "positive and difficult choices restored",
+    "gratitude restored",
+    "repeat file import adds no duplicate choices"
+  ]
+}

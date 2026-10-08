@@ -1,0 +1,22 @@
+# Local build outputs and installation packages (published separately in Releases).
+build/
+dist/
+release/
+.gradle/
+.android-test/
+local.properties
+*.apk
+*.apk.idsig
+*.aab
+*.iml
+# The signing key is private and never belongs in Git.
+signing/
+*.keystore
+*.jks
+# Personal data and generated Python caches.
+*.db
+*.db-shm
+*.db-wal
+__pycache__/
+*.pyc
+.DS_Store

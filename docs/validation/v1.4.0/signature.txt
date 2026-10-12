@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Spokojniej Local, O=Spokojniej, C=PL
+Signer #1 certificate SHA-256 digest: fe54ab2b36364dd14c002fecf1fb8fd38b04afb9c48b416a71aaf821189826d5
+Signer #1 certificate SHA-1 digest: 37a8e79f34333e10e7c809182eabf422b73ae272
+Signer #1 certificate MD5 digest: b1fac2e1a28e3b98b4e1c2d6052217e1
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: ae6f4439bfead15c30496f49f1c658becd1b9613635e5a73992123fd93939bc7
+Signer #1 public key SHA-1 digest: c31ac759b6061ad3e4e93eace9dd48843f7f9a42
+Signer #1 public key MD5 digest: a2a8f9f083b77d2c07f29a3ade29b1bd

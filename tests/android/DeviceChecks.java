@@ -198,6 +198,43 @@ public final class DeviceChecks extends Instrumentation {
             bad=new org.json.JSONObject(journalJson);bad.getJSONArray("done").put(bad.getJSONArray("done").getJSONObject(0));future=false;try{Backup.parse(bad.toString());}catch(org.json.JSONException expected){future=true;}check(future,"Duplicate done identities rejected");
             db.deleteDone(doneId);check(db.done(yesterday).isEmpty(),"Done item can be deleted");
             sql.delete("events",null,null);sql.delete("gratitude",null,null);sql.delete("marks",null,null);sql.delete("done",null,null);
+            {
+            long momentTime=now-120000,originalAnchor=db.anchor();
+            String momentDay=Store.dayKey(momentTime);
+            boolean[] contexts7={true,false,false,false,true,false,true},help4={true,true,false,false};
+            long tension=db.addMoment(momentTime,"tension",contexts7,help4);
+            check(db.anchor()==originalAnchor && db.dayStatus(momentDay)==0,"Tension alone never resets counter or implies a difficult day");
+            check(db.checkInDay(momentDay)>=0 && db.dayStatus(momentDay)==1,"A calm day can be recorded alongside tension");
+            check(db.momentKind(tension).equals("tension") && db.contexts(tension)[6] && db.help(tension)[0] && db.help(tension)[1],"Moment type, surprise and several helpful actions persist");
+            db.editMoment(tension,momentTime,"impulse",contexts7,help4);
+            check(db.anchor()==momentTime && db.dayStatus(momentDay)==2,"Impulsive reaction changes counter and day status");
+            db.editMoment(tension,momentTime,"tension",contexts7,new boolean[]{false,false,true,true});
+            check(db.anchor()==originalAnchor && db.dayStatus(momentDay)==1,"Reclassifying as tension restores previous calm check-in and counter");
+            check(!db.help(tension)[0] && db.help(tension)[2] && db.help(tension)[3],"Editing helpful actions removes deselected choices");
+            long impulse=db.addMoment(momentTime,"impulse",new boolean[7],new boolean[4]);
+            long escalatedMoment=db.addMoment(momentTime,"conflict",new boolean[7],new boolean[4]);
+            check(db.checkInDay(momentDay)==-1,"Impulsive and escalated moments still prevent contradictory calm check-in");
+            int beforeCount=db.history().size();boolean invalidMoment=false;
+            try{db.addMoment(momentTime,"unknown",contexts7,help4);}catch(IllegalArgumentException expected){invalidMoment=true;}
+            check(invalidMoment && db.history().size()==beforeCount,"Invalid moment rolls back event and circumstances together");
+            String momentsJson=Backup.export(c,db);org.json.JSONObject momentsRoot=new org.json.JSONObject(momentsJson);
+            check(momentsRoot.getInt("version")==4,"Backup format 4 supports distinct moment types and helpful actions");
+            Backup.Data moments=Backup.parse(momentsJson);sql.delete("events",null,null);
+            check(sql.rawQuery("SELECT * FROM moment_details",null).getCount()==0 && sql.rawQuery("SELECT * FROM event_help",null).getCount()==0,"Deleting moments cleans type and help metadata");
+            Backup.restore(c,db,moments);int[] types={0,0,0};
+            for(Store.Entry entry:db.history())if(Store.momentKind(entry.kind))types[java.util.Arrays.asList(Store.MOMENT_KINDS).indexOf(entry.kind)]++;
+            check(types[0]==1 && types[1]==1 && types[2]==1,"New-phone restore preserves different moment types at identical timestamps");
+            Store.Entry restoredTension=null;for(Store.Entry entry:db.history())if(entry.kind.equals("tension"))restoredTension=entry;
+            check(restoredTension!=null && db.contexts(restoredTension.id)[6] && db.help(restoredTension.id)[2] && db.help(restoredTension.id)[3],"Restore preserves surprise and helpful actions on correct moment");
+            check(Backup.restore(c,db,moments).events==0 && db.history().size()==4,"Repeated format 4 import does not duplicate any moment");
+            org.json.JSONObject invalidHelp=new org.json.JSONObject(momentsJson);invalidHelp.getJSONArray("events").getJSONObject(0).put("help",new org.json.JSONArray().put("unknown"));invalidMoment=false;
+            try{Backup.parse(invalidHelp.toString());}catch(org.json.JSONException expected){invalidMoment=true;}check(invalidMoment,"Unknown helpful actions are rejected before restore writes");
+            org.json.JSONObject oldV3=new org.json.JSONObject(journalJson).put("version",3);for(int i=0;i<oldV3.getJSONArray("events").length();i++)oldV3.getJSONArray("events").getJSONObject(i).remove("help");
+            sql.delete("events",null,null);Backup.restore(c,db,Backup.parse(oldV3.toString()));
+            check(db.history().size()==3 && db.anchor()==same,"Old format 3 conversations retain their original meaning and times");
+            for(Store.Entry entry:db.history())if(entry.kind.equals("conflict"))check(!db.help(entry.id)[0],"No helpful actions invented for old records");
+            sql.delete("events",null,null);sql.delete("done",null,null);
+            }
             for(int i=0;i<25;i++)db.saveDone(null,today,"Testowy wpis do sprawdzenia przewijania "+i);
             Activity diary=startActivitySync(new Intent(c,MainActivity.class).setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK));waitForIdleSync();
             java.lang.reflect.Field scrollField=MainActivity.class.getDeclaredField("contentScroll");scrollField.setAccessible(true);

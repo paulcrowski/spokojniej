@@ -31,13 +31,15 @@ public final class Backup {
     public static String export(Context c, Store db) throws JSONException {
         SQLiteDatabase snapshot=db.getReadableDatabase(); snapshot.beginTransaction();
         try {
-        JSONObject root = new JSONObject().put("format", FORMAT).put("version", 3).put("createdAt", System.currentTimeMillis()).put("startedAt", db.started());
+        JSONObject root = new JSONObject().put("format", FORMAT).put("version", 4).put("createdAt", System.currentTimeMillis()).put("startedAt", db.started());
         JSONArray events = new JSONArray();
         try (Cursor cursor = db.getReadableDatabase().rawQuery("SELECT happened_at,kind,day_key,id FROM events ORDER BY happened_at,id", null)) {
             while (cursor.moveToNext()) {
+                long id=cursor.getLong(3);String kind="calm".equals(cursor.getString(1))?"calm":db.momentKind(id);
+                JSONArray help=new JSONArray();boolean[] helped=db.help(id);for(int i=0;i<helped.length;i++)if(helped[i])help.put(Store.HELP_KINDS[i]);
                 JSONArray contexts=new JSONArray();boolean[] chosen=db.contexts(cursor.getLong(3));
                 for(int i=0;i<chosen.length;i++)if(chosen[i])contexts.put(Store.CONTEXT_KINDS[i]);
-                events.put(new JSONObject().put("at",cursor.getLong(0)).put("kind",cursor.getString(1)).put("day",cursor.isNull(2)?JSONObject.NULL:cursor.getString(2)).put("contexts",contexts));
+                events.put(new JSONObject().put("at",cursor.getLong(0)).put("kind",kind).put("day",cursor.isNull(2)?JSONObject.NULL:cursor.getString(2)).put("contexts",contexts).put("help",help));
             }
         }
         JSONArray gratitude = new JSONArray();
@@ -84,7 +86,7 @@ public final class Backup {
         if (text.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) throw new JSONException("Kopia przekracza limit 5 MB.");
         JSONObject root = new JSONObject(text);
         long version=number(root,"version");
-        if (!FORMAT.equals(root.optString("format")) || (version!=1 && version!=2 && version!=3)) throw new JSONException("To nie jest obsługiwana kopia Spokojniej.");
+        if (!FORMAT.equals(root.optString("format")) || (version!=1 && version!=2 && version!=3 && version!=4)) throw new JSONException("To nie jest obsługiwana kopia Spokojniej.");
         long started=number(root,"startedAt");
         if (started < 0) throw new JSONException("Nieprawidłowa data rozpoczęcia.");
         JSONArray events=root.getJSONArray("events"), gratitude=root.getJSONArray("gratitude");
@@ -92,16 +94,19 @@ public final class Backup {
         Set<String> calmDays=new HashSet<>(), gratitudeDays=new HashSet<>();
         for (int i=0; i<events.length(); i++) {
             JSONObject event=events.getJSONObject(i); long at=number(event,"at"); String kind=event.getString("kind");
-            if (at < 0 || !("conflict".equals(kind) || "calm".equals(kind))) throw new JSONException("Nieprawidłowy wpis historii.");
+            if (at < 0 || !("calm".equals(kind) || (version<4?"conflict".equals(kind):Store.momentKind(kind)))) throw new JSONException("Nieprawidłowy wpis historii.");
             if ("calm".equals(kind)) { if (!calmDays.add(day(event,"day"))) throw new JSONException("Powtórzony spokojny dzień w kopii."); }
-            else if (!event.has("day") || !event.isNull("day")) throw new JSONException("Nieprawidłowy wpis kłótni.");
+            else if (!event.has("day") || !event.isNull("day")) throw new JSONException("Nieprawidłowy wpis trudnego momentu.");
             JSONArray contexts=version<3 ? new JSONArray() : event.getJSONArray("contexts");
             Set<String> selected=new HashSet<>();
             for(int j=0;j<contexts.length();j++) {
                 Object context=contexts.get(j);
-                if(!(context instanceof String) || !Arrays.asList(Store.CONTEXT_KINDS).contains(context) || !selected.add((String)context) || !"conflict".equals(kind)) throw new JSONException("Nieprawidłowe okoliczności rozmowy.");
+                if(!(context instanceof String) || !Arrays.asList(Store.CONTEXT_KINDS).contains(context) || !selected.add((String)context) || !Store.momentKind(kind)) throw new JSONException("Nieprawidłowe okoliczności rozmowy.");
             }
             event.put("contexts",contexts);
+            JSONArray help=version<4?new JSONArray():event.getJSONArray("help");selected.clear();
+            for(int j=0;j<help.length();j++) {Object value=help.get(j);if(!(value instanceof String) || !Arrays.asList(Store.HELP_KINDS).contains(value) || !selected.add((String)value) || !Store.momentKind(kind))throw new JSONException("Nieprawidłowy zapis tego, co pomogło.");}
+            event.put("help",help);
         }
         for (int i=0; i<gratitude.length(); i++) {
             JSONObject g=gratitude.getJSONObject(i); String date=day(g,"day"); Object note=g.get("note");
@@ -130,7 +135,7 @@ public final class Backup {
     public static Result restore(Context c, Store store, Data data) throws JSONException {
         SQLiteDatabase db=store.getWritableDatabase(); Result result=new Result();
         // Validate the entire document before the first write, including caller-created data.
-        Data validated=parse(new JSONObject().put("format",FORMAT).put("version",3).put("startedAt",data.started).put("events",data.events).put("gratitude",data.gratitude).put("marks",data.marks).put("done",data.done).put("settings",data.settings).toString());
+        Data validated=parse(new JSONObject().put("format",FORMAT).put("version",4).put("startedAt",data.started).put("events",data.events).put("gratitude",data.gratitude).put("marks",data.marks).put("done",data.done).put("settings",data.settings).toString());
         boolean initiallyEmpty=store.history().isEmpty() && store.gratitudeHistory().isEmpty() && store.markHistory().isEmpty() && store.doneHistory().isEmpty();
         db.beginTransaction();
         try {
@@ -141,13 +146,16 @@ public final class Backup {
                 // Ordinal matching preserves separate conversations at the same time.
                 // A calm day matches its date even after a timezone change.
                 long id=-1;
-                String query="calm".equals(kind) ? "SELECT id FROM events WHERE kind='calm' AND day_key=?" : "SELECT id FROM events WHERE happened_at=? AND kind=? ORDER BY id LIMIT 1 OFFSET "+(occurrence-1);
+                String query="calm".equals(kind) ? "SELECT id FROM events WHERE kind='calm' AND day_key=?" : "SELECT e.id FROM events e LEFT JOIN moment_details m ON e.id=m.event_id WHERE happened_at=? AND COALESCE(m.kind,e.kind)=? ORDER BY e.id LIMIT 1 OFFSET "+(occurrence-1);
                 String[] args="calm".equals(kind) ? new String[]{e.getString("day")} : new String[]{String.valueOf(at),kind};
                 try(Cursor cursor=db.rawQuery(query,args)){if(cursor.moveToFirst())id=cursor.getLong(0);}
                 if(id<0) {
-                    ContentValues v=new ContentValues();v.put("happened_at",at);v.put("kind",kind);if("calm".equals(kind))v.put("day_key",e.getString("day"));
+                    ContentValues v=new ContentValues();v.put("happened_at",at);v.put("kind","calm".equals(kind)?"calm":"conflict");if("calm".equals(kind))v.put("day_key",e.getString("day"));
                     id=db.insertOrThrow("events",null,v);result.events++;
+                    if(Store.momentKind(kind)) {ContentValues detail=new ContentValues();detail.put("event_id",id);detail.put("kind",kind);db.insertOrThrow("moment_details",null,detail);}
                 }
+                JSONArray help=e.getJSONArray("help");
+                for(int j=0;j<help.length();j++) {ContentValues v=new ContentValues();v.put("event_id",id);v.put("kind",help.getString(j));db.insertWithOnConflict("event_help",null,v,SQLiteDatabase.CONFLICT_IGNORE);}
                 JSONArray contexts=e.getJSONArray("contexts");
                 for(int j=0;j<contexts.length();j++) {
                     ContentValues v=new ContentValues();v.put("event_id",id);v.put("kind",contexts.getString(j));

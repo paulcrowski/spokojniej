@@ -1,0 +1,24 @@
+Success
+
+Serving...
+Performing Incremental Install
+Success
+Install command complete in 840 ms
+All files should be loaded. Notifying the device.
+
+Serving...
+Performing Incremental Install
+Success
+Install command complete in 673 ms
+All files should be loaded. Notifying the device.
+
+SEEDED: old app database with two events
+
+
+Serving...
+Performing Incremental Install
+Success
+Install command complete in 194 ms
+All files should be loaded. Notifying the device.
+
+PASS: 27 APK upgrade and migration checks

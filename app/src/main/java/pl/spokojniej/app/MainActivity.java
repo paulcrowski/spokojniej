@@ -161,9 +161,9 @@ public final class MainActivity extends Activity {
         int status=db.dayStatus(selectedDay);
         LinearLayout state=new LinearLayout(this);
         Button calm=button(status==1?"✓ Spokojny dzień":"Spokojny dzień",status==1,v -> checkIn());
-        Button conversation=quiet("Zapisz kłótnię",v -> editConflict(-1,conflictTimeForDay()));conversation.setTextSize(14);calm.setTextSize(14);
-        state.addView(calm,new LinearLayout.LayoutParams(0,-2,1));state.addView(conversation,new LinearLayout.LayoutParams(0,-2,1));add(state,10);
-        add(text(status==2?"Trudna rozmowa jest zapisana. Dobre momenty też mają tu miejsce.":status==1?"Spokój zapisany. Możesz uzupełnić resztę, jeśli chcesz.":"Zapis dnia jest opcjonalny. Możesz wrócić później.",13,MUTED),8);
+        calm.setTextSize(14);
+        state.addView(calm,new LinearLayout.LayoutParams(-1,-2));add(state,10);
+        add(text(status==2?"Trudny moment jest zapisany. Dobre momenty też mają tu miejsce.":status==1?"Spokój zapisany. Możesz uzupełnić resztę, jeśli chcesz.":"Zapis dnia jest opcjonalny. Możesz wrócić później.",13,MUTED),8);
         if(Pause.active(this)) add(quiet("Trwa pauza do "+Pause.returnTime(this)+" · pokaż odliczanie",v -> showPause(false)),12);
         line();
         section("Zrobione","+ Dodaj",v -> editDone(null,selectedDay),14);
@@ -180,21 +180,26 @@ public final class MainActivity extends Activity {
         section("Małe kroki",summary.isEmpty()?"+ Dodaj":"Edytuj",v -> editMarks(selectedDay),22);
         add(text(summary.isEmpty()?"Pauza albo spokojnie wyrażone zdanie. Bez ocen.":summary,14,MUTED),4);
         java.util.List<Store.Entry> conversations=new ArrayList<>();
-        for(Store.Entry entry:db.history()) if("conflict".equals(entry.kind)&&Store.dayKey(entry.time).equals(selectedDay)) conversations.add(entry);
+        for(Store.Entry entry:db.history()) if(Store.momentKind(entry.kind)&&Store.dayKey(entry.time).equals(selectedDay)) conversations.add(entry);
+        line();section("Trudne momenty",null,null,14);
+        add(quiet("Zapisz trudny moment",v -> editConflict(-1,conflictTimeForDay())),6);
+        add(text("Samo napięcie nie przekreśla spokojnego dnia. Wpis możesz dodać później.",13,MUTED),4);
         if(!conversations.isEmpty()) {
-            line();section("Trudne rozmowy",null,null,14);
             for(Store.Entry entry:conversations) {
-                String contexts=contextSummary(entry.id);
-                Button row=quiet(format(entry.time,"HH:mm")+" · Kłótnia"+(contexts.isEmpty()?"":"\n"+contexts)+"  ›",v -> entryActions(entry));row.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);row.setTextSize(15);add(row,4);
+                String contexts=contextSummary(entry.id),help=helpSummary(entry.id);
+                Button row=quiet(format(entry.time,"HH:mm")+" · "+Store.momentLabel(entry.kind)+(contexts.isEmpty()?"":"\n"+contexts)+(help.isEmpty()?"":"\nPomogło: "+help)+"  ›",v -> entryActions(entry));row.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);row.setTextSize(15);add(row,4);
             }
         }
         if(status==1) add(quiet("Cofnij zapis spokojnego dnia",v -> new AlertDialog.Builder(this).setTitle("Cofnąć zapis spokoju?").setMessage("Pozostałe wpisy tego dnia zostaną.").setNegativeButton("Zostaw",null).setPositiveButton("Cofnij",(d,w) -> {db.removeCalm(selectedDay);changed();}).show()),20);
         long now=System.currentTimeMillis(),days=Streaks.fullDays(db.anchor(),now);
-        line();add(text(days+" "+Streaks.dayWord(days)+" bez kłótni",16,GREEN),20);
-        add(text("Licznik pełnych 24 godzin. Twoje dobre momenty zostają po trudniejszej rozmowie.",12,MUTED),4);
+        line();add(text(days+" "+Streaks.dayWord(days)+" spokojniejszego reagowania",16,GREEN),20);
+        add(text("Pełne 24 godziny od zapisanej impulsywnej reakcji lub zaostrzonej rozmowy. Samo napięcie nie zmienia licznika.",12,MUTED),4);
     }
     private String contextSummary(long id) {
         boolean[] values=db.contexts(id);java.util.List<String> labels=new ArrayList<>();for(int i=0;i<values.length;i++)if(values[i])labels.add(Store.CONTEXT_LABELS[i]);return String.join(" · ",labels);
+    }
+    private String helpSummary(long id) {
+        boolean[] values=db.help(id);java.util.List<String> labels=new ArrayList<>();for(int i=0;i<values.length;i++)if(values[i])labels.add(Store.HELP_LABELS[i]);return String.join(" · ",labels);
     }
     private void editDone(Store.Done item,String day) {
         LinearLayout box=column();box.setPadding(dp(24),dp(8),dp(24),dp(12));box.addView(text(formatDay(day)+"\nZapisz to, co już zrobiłeś. Może być drobne.",14,MUTED));
@@ -211,7 +216,7 @@ public final class MainActivity extends Activity {
         }).show();
     }
     private void entryActions(Store.Entry entry) {
-        new AlertDialog.Builder(this).setTitle(format(entry.time,"d MMM, HH:mm")).setItems(new String[]{"Popraw rozmowę","Usuń wpis"},(d,w) -> {
+        new AlertDialog.Builder(this).setTitle(format(entry.time,"d MMM, HH:mm")).setItems(new String[]{"Popraw trudny moment","Usuń wpis"},(d,w) -> {
             if(w==0)editConflict(entry.id,entry.time);else new AlertDialog.Builder(this).setTitle("Usunąć ten wpis?").setMessage("Licznik zostanie przeliczony. Pozostałe wpisy zostają.").setNegativeButton("Zostaw",null).setPositiveButton("Usuń",(dialog,which) -> {db.delete(entry.id);changed();}).show();
         }).show();
     }
@@ -233,7 +238,7 @@ public final class MainActivity extends Activity {
 
     private void checkIn() {
         if(db.dayStatus(selectedDay)==2) {
-            new AlertDialog.Builder(this).setTitle("W tym dniu jest wpis o kłótni").setMessage("Możesz zapisać dobre momenty tego dnia. Jeśli rozmowa została wpisana przez pomyłkę, popraw lub usuń ją niżej w dzienniku.").setPositiveButton("Rozumiem",null).show();return;
+            new AlertDialog.Builder(this).setTitle("W tym dniu jest trudny moment").setMessage("Możesz zapisać dobre momenty tego dnia. Jeśli rodzaj momentu został wybrany przez pomyłkę, popraw go niżej w dzienniku. Samo napięcie pozwala zapisać spokojny dzień.").setPositiveButton("Rozumiem",null).show();return;
         }
         long id=db.checkInDay(selectedDay);if(id>=0)lastAdded=id;changed();toast("Spokojny dzień zapisany.");
     }
@@ -257,7 +262,13 @@ public final class MainActivity extends Activity {
     private void editConflict(long id, long initial) {
         Calendar selected = Calendar.getInstance(); selected.setTimeInMillis(initial); selected.set(Calendar.SECOND, 0); selected.set(Calendar.MILLISECOND, 0);
         LinearLayout box = column(); box.setPadding(dp(24), dp(12), dp(24), dp(12));
-        TextView detail = text("Data i godzina. Okoliczności są opcjonalne — możesz zaznaczyć kilka.", 15, MUTED); box.addView(detail);
+        TextView detail = text("Co się wydarzyło? Wybierz jedną opcję. Resztę możesz pominąć.", 15, MUTED); box.addView(detail);
+        RadioGroup kinds=new RadioGroup(this);String current=id<0?null:db.momentKind(id);
+        for(int i=0;i<Store.MOMENT_KINDS.length;i++) {
+            RadioButton choice=new RadioButton(this);choice.setId(100+i);choice.setText(Store.MOMENT_LABELS[i]);choice.setTextSize(16);choice.setTextColor(INK);choice.setMinHeight(dp(48));kinds.addView(choice);
+            if(Store.MOMENT_KINDS[i].equals(current))choice.setChecked(true);
+        }box.addView(kinds);
+        TextView typeError=text("Wybierz, co się wydarzyło.",14,INK);typeError.setVisibility(View.GONE);box.addView(typeError);
         Button date = button(format(selected.getTimeInMillis(), "d MMMM yyyy"), false, null);
         Button time = button(format(selected.getTimeInMillis(), "HH:mm"), false, null);
         LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(-1, -2); gap.topMargin = dp(16); box.addView(date, gap);
@@ -270,18 +281,26 @@ public final class MainActivity extends Activity {
         });
         time.setOnClickListener(v -> new TimePickerDialog(this, (p,h,m) -> { selected.set(Calendar.HOUR_OF_DAY,h); selected.set(Calendar.MINUTE,m); time.setText(format(selected.getTimeInMillis(), "HH:mm")); }, selected.get(Calendar.HOUR_OF_DAY), selected.get(Calendar.MINUTE), true).show());
         boolean[] contexts=id<0?new boolean[Store.CONTEXT_KINDS.length]:db.contexts(id);
-        TextView label=text("Co towarzyszyło tej rozmowie?",16,INK);LinearLayout.LayoutParams labelGap=new LinearLayout.LayoutParams(-1,-2);labelGap.topMargin=dp(16);box.addView(label,labelGap);
+        TextView label=text("Co mogło mieć wpływ? · opcjonalnie",16,INK);LinearLayout.LayoutParams labelGap=new LinearLayout.LayoutParams(-1,-2);labelGap.topMargin=dp(16);box.addView(label,labelGap);
         for(int i=0;i<contexts.length;i++) {
             final int index=i;CheckBox choice=new CheckBox(this);choice.setText(Store.CONTEXT_LABELS[i]);choice.setTextSize(16);choice.setTextColor(INK);choice.setMinHeight(dp(48));choice.setChecked(contexts[i]);choice.setOnCheckedChangeListener((view,checked) -> contexts[index]=checked);box.addView(choice);
         }
+        boolean[] help=id<0?new boolean[Store.HELP_KINDS.length]:db.help(id);
+        TextView helpLabel=text("Co pomogło? · opcjonalnie",16,INK);box.addView(helpLabel,labelGap);
+        for(int i=0;i<help.length;i++) {
+            final int index=i;CheckBox choice=new CheckBox(this);choice.setText(Store.HELP_LABELS[i]);choice.setTextSize(16);choice.setTextColor(INK);choice.setMinHeight(dp(48));choice.setChecked(help[i]);choice.setOnCheckedChangeListener((view,checked) -> help[index]=checked);box.addView(choice);
+        }
         ScrollView editorScroll = new ScrollView(this); editorScroll.addView(box);
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(id < 0 ? "Zapisz kłótnię" : "Popraw rozmowę").setView(editorScroll)
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(id < 0 ? "Zapisz trudny moment" : "Popraw trudny moment").setView(editorScroll)
             .setNegativeButton("Anuluj", null).setPositiveButton("Zapisz", null).create();
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            int index=kinds.getCheckedRadioButtonId()-100;
+            if(index<0 || index>=Store.MOMENT_KINDS.length){typeError.setVisibility(View.VISIBLE);editorScroll.smoothScrollTo(0,0);toast("Wybierz, co się wydarzyło.");return;}
+            String kind=Store.MOMENT_KINDS[index];
             long chosen = selected.getTimeInMillis();
             if (chosen > System.currentTimeMillis()) { toast("Wybierz godzinę, która już minęła."); return; }
-            if (id < 0) lastAdded = db.addConflict(chosen,contexts); else db.editConflict(id, chosen,contexts);
-            selectedDay=Store.dayKey(chosen);dialog.dismiss(); changed(); toast("Rozmowa zapisana. Dobre momenty zostają.");
+            if (id < 0) lastAdded = db.addMoment(chosen,kind,contexts,help); else db.editMoment(id,chosen,kind,contexts,help);
+            selectedDay=Store.dayKey(chosen);dialog.dismiss(); changed(); toast("Trudny moment zapisany. Dobre momenty zostają.");
         })); dialog.show();
     }
     private void showHistory() {
@@ -290,14 +309,16 @@ public final class MainActivity extends Activity {
         add(button("Wybierz datę",false,v -> pickDay(selectedDay,this::openDay)),18);
         TreeSet<String> days=new TreeSet<>(Collections.reverseOrder());
         days.add(LocalDate.now().toString());days.add(LocalDate.now().minusDays(1).toString());
-        for(Store.Entry entry:db.history())days.add(entry.day==null?Store.dayKey(entry.time):entry.day);
+        java.util.List<Store.Entry> entries=db.history();
+        for(Store.Entry entry:entries)days.add(entry.day==null?Store.dayKey(entry.time):entry.day);
         for(Store.Gratitude note:db.gratitudeHistory())days.add(note.day);
         for(Store.Mark mark:db.markHistory())days.add(mark.day);
         for(Store.Done item:db.doneHistory())days.add(item.day);
         int shown=0;
         for(String day:days) {
             if(shown++>=historyLimit)break;
-            int status=db.dayStatus(day);String label=status==1?"Spokojny dzień":status==2?"Zapis rozmowy":"Bez zapisu spokoju";
+            int status=db.dayStatus(day);String label=status==1?"Spokojny dzień":status==2?"Trudny moment":"Bez zapisu spokoju";
+            for(Store.Entry entry:entries)if("tension".equals(entry.kind) && Store.dayKey(entry.time).equals(day)){label+=" · Napięcie";break;}
             int count=db.done(day).size();if(count>0)label+=" · Zrobione: "+count;
             if(!db.gratitude(day).isEmpty())label+=" · Wdzięczność";
             if(!markSummary(day).isEmpty())label+=" · Małe kroki";
@@ -330,10 +351,10 @@ public final class MainActivity extends Activity {
         add(text("Historia, lista Zrobione, małe kroki i wdzięczność zostają w Twoim telefonie. Przed zmianą telefonu zapisz kopię i wczytaj ją na nowym urządzeniu.", 14, MUTED), 8);
         add(button("Zapisz kopię",false,v -> createBackup()),14);
         add(button("Wczytaj kopię",false,v -> openBackup()),10);
-        add(text("Sam wybierasz miejsce zapisu pliku. Wczytanie dodaje brakujące wpisy. Jeśli wdzięczność lub ten sam wpis Zrobione już istnieją, zachowa obecny tekst. Okoliczności rozmów uzupełni o brakujące oznaczenia. Na nowym telefonie odtworzy też ustawienia przypomnień; nadal trzeba zezwolić na powiadomienia i dodać widget.",14,MUTED),12);
+        add(text("Sam wybierasz miejsce zapisu pliku. Wczytanie dodaje brakujące wpisy. Jeśli wdzięczność lub ten sam wpis Zrobione już istnieją, zachowa obecny tekst. Okoliczności i to, co pomogło, uzupełni o brakujące oznaczenia. Na nowym telefonie odtworzy też ustawienia przypomnień; nadal trzeba zezwolić na powiadomienia i dodać widget.",14,MUTED),12);
         add(text("Odinstalowanie aplikacji usuwa dane z telefonu. Zachowaj kopię poza aplikacją. Nie ma automatycznego wysyłania ani synchronizacji.",14,MUTED),12);
-        add(text("Licznik mierzy pełne 24 godziny od ostatniej kłótni, a przed pierwszym wpisem — od uruchomienia aplikacji. Brak wpisu nie jest potwierdzeniem spokojnego dnia. Widget odświeża się okresowo i po zapisaniu wpisu.", 14, MUTED), 16);
-        add(text("Spokojniej 1.3.0 · Android 8 lub nowszy", 12, MUTED), 24);
+        add(text("Licznik mierzy pełne 24 godziny od zapisanej impulsywnej reakcji lub zaostrzonej rozmowy, a gdy nie zapisano takich momentów — od uruchomienia aplikacji. Samo napięcie nie zmienia licznika. Brak wpisu nie jest potwierdzeniem spokojnego dnia. Widget odświeża się okresowo i po zapisaniu wpisu.", 14, MUTED), 16);
+        add(text("Spokojniej 1.4.0 · Android 8 lub nowszy", 12, MUTED), 24);
     }
     private void createBackup() {
         if (backupBusy) { toast("Poczekaj na zakończenie kopiowania."); return; }
@@ -361,7 +382,7 @@ public final class MainActivity extends Activity {
                     try (OutputStream out=getContentResolver().openOutputStream(uri,"wt")) {
                         if (out==null) throw new IOException("Brak dostępu do pliku."); out.write(json.getBytes(StandardCharsets.UTF_8)); out.flush();
                     }
-                    backupDone(() -> new AlertDialog.Builder(this).setTitle("Kopia zapisana").setMessage("Plik zawiera historię z okolicznościami, listę Zrobione, małe kroki, wpisy wdzięczności i ustawienia przypomnień. Przenieś go na nowy telefon i wybierz Wczytaj kopię.").setPositiveButton("Gotowe",null).show());
+                    backupDone(() -> new AlertDialog.Builder(this).setTitle("Kopia zapisana").setMessage("Plik zawiera historię z rodzajami momentów, okolicznościami i tym, co pomogło, listę Zrobione, małe kroki, wpisy wdzięczności i ustawienia przypomnień. Przenieś go na nowy telefon i wybierz Wczytaj kopię.").setPositiveButton("Gotowe",null).show());
                 } else {
                     Backup.Data backup;
                     try (InputStream in=getContentResolver().openInputStream(uri)) { backup=Backup.read(in); }
@@ -379,7 +400,7 @@ public final class MainActivity extends Activity {
                 Backup.Result restored=Backup.restore(this,store,backup);
                 backupDone(() -> {
                     lastAdded=-1; CalmWidget.updateAll(this); ReminderReceiver.schedule(this); showSettings();
-                    String message="Dodano wpisy historii: "+restored.events+"\nDodano dni z wdzięcznością: "+restored.gratitude+"\nDodano do listy Zrobione: "+restored.done+"\nDodano okoliczności rozmów: "+restored.contexts+"\nDodano zapisy małych kroków i trudności: "+restored.marks;
+                    String message="Dodano wpisy historii: "+restored.events+"\nDodano dni z wdzięcznością: "+restored.gratitude+"\nDodano do listy Zrobione: "+restored.done+"\nDodano okoliczności momentów: "+restored.contexts+"\nDodano zapisy małych kroków i trudności: "+restored.marks;
                     if(restored.keptDone>0)message+="\nZachowano obecne wpisy Zrobione: "+restored.keptDone;
                     if (restored.keptGratitude>0) message+="\nZachowano obecne teksty wdzięczności: "+restored.keptGratitude;
                     new AlertDialog.Builder(this).setTitle("Kopia wczytana").setMessage(message).setPositiveButton("Gotowe",null).show();

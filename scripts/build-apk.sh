@@ -29,8 +29,8 @@ if [ ! -f signing/local.keystore ]; then
     umask 077
     "$TASK_JAVA/bin/keytool" -genkeypair -keystore signing/local.keystore -storepass local-spokojniej -keypass local-spokojniej -alias spokojniej -keyalg RSA -keysize 3072 -validity 10000 -dname "CN=Spokojniej Local, O=Spokojniej, C=PL"
 fi
-"$TOOLS/apksigner" sign --ks signing/local.keystore --ks-key-alias spokojniej --ks-pass pass:local-spokojniej --key-pass pass:local-spokojniej --out dist/Spokojniej-1.3.0.apk build/aligned.apk
-"$TOOLS/apksigner" verify --verbose dist/Spokojniej-1.3.0.apk
-"$TOOLS/aapt" dump badging dist/Spokojniej-1.3.0.apk > dist/apk-info-1.3.0.txt
-shasum -a 256 dist/Spokojniej-1.3.0.apk > dist/SHA256SUMS-1.3.0
-echo 'APK: dist/Spokojniej-1.3.0.apk'
+"$TOOLS/apksigner" sign --ks signing/local.keystore --ks-key-alias spokojniej --ks-pass pass:local-spokojniej --key-pass pass:local-spokojniej --out dist/Spokojniej-1.4.0.apk build/aligned.apk
+"$TOOLS/apksigner" verify --verbose dist/Spokojniej-1.4.0.apk
+"$TOOLS/aapt" dump badging dist/Spokojniej-1.4.0.apk > dist/apk-info-1.4.0.txt
+shasum -a 256 dist/Spokojniej-1.4.0.apk > dist/SHA256SUMS-1.4.0
+echo 'APK: dist/Spokojniej-1.4.0.apk'

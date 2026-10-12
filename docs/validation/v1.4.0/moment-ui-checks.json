@@ -1,0 +1,17 @@
+{
+  "passed": [
+    "new moment does not invent a type: Czułem napięcie",
+    "new moment does not invent a type: Zareagowałem impulsywnie",
+    "new moment does not invent a type: Rozmowa się zaostrzyła",
+    "impulsive reaction saves with optional fields left empty",
+    "editor restores selected impulse radio",
+    "other radio is not selected while editing impulse",
+    "edited conversation type appears in diary",
+    "editor restores selected escalation radio",
+    "reclassified tension allows a new calm check-in",
+    "editor restores selected tension radio",
+    "moment deletion can be cancelled",
+    "confirmed deletion removes chosen moment",
+    "removing a moment retains calm check-in"
+  ]
+}

@@ -29,20 +29,30 @@ public final class MigrationChecks extends Instrumentation {
                     db.saveGratitude(Store.dayKey(now),note); data.put("note",note).put("day",Store.dayKey(now));
                     Store.prefs(c).edit().putBoolean("evening",true).putInt("eveningHour",20).putInt("eveningMinute",30).commit();
                     if(db.getReadableDatabase().getVersion()>=3)db.saveMarks(Store.dayKey(now),new boolean[]{true,false,true,false});
+                    if(db.getReadableDatabase().getVersion()>=4) {
+                        String doneId=db.saveDone(null,Store.dayKey(calm),"Zrobione przed aktualizacją.");data.put("doneId",doneId);
+                        long eventId=-1;for(Store.Entry entry:db.history())if(entry.kind.equals("conflict"))eventId=entry.id;
+                        db.editConflict(eventId,conflict,new boolean[]{true,true,false,false,true,false});data.put("eventId",eventId);
+                    }
                     Files.write(new File(c.getFilesDir(),"old-backup.json").toPath(),Backup.export(c,db).getBytes(StandardCharsets.UTF_8));
                 }
                 Files.write(fixture.toPath(),data.toString().getBytes(StandardCharsets.UTF_8));
                 result.putString("stream","SEEDED: old app database with two events\n");
             } else {
                 JSONObject expected=new JSONObject(new String(Files.readAllBytes(fixture.toPath()),StandardCharsets.UTF_8));
-                check(db.getReadableDatabase().getVersion()==4,"Schema upgraded to v4");
+                check(db.getReadableDatabase().getVersion()==5,"Schema upgraded to v5");
                 check(db.history().size()==2,"Old event rows preserved");
                 check(db.started()==expected.getLong("started"),"Old tracking start preserved");
                 check(db.anchor()==expected.getLong("conflict"),"Old last conflict preserved");
                 check(db.history().get(0).time==expected.getLong("calm"),"Old calm timestamp preserved");
                 check(db.markHistory().size()==(expected.getInt("schema")>=3?2:0),"Existing daily steps preserved, no new choices invented");
-                check(db.doneHistory().isEmpty(),"New done table starts empty");
-                for(Store.Entry entry:db.history())for(boolean tag:db.contexts(entry.id))check(!tag,"Old conversations have no invented circumstances");
+                check(db.doneHistory().size()==(expected.getInt("schema")>=4?1:0),"Existing done items preserved");
+                if(expected.has("doneId")) {
+                    check(db.doneHistory().get(0).id.equals(expected.getString("doneId")) && db.doneHistory().get(0).note.equals("Zrobione przed aktualizacją."),"Done identity and text survive v4 upgrade");
+                    long id=expected.getLong("eventId");check(db.contexts(id)[0] && db.contexts(id)[1] && db.contexts(id)[4] && !db.contexts(id)[6],"Original context relationships preserved; surprise not invented");
+                    check(db.momentKind(id).equals("conflict") && !db.help(id)[0],"Old argument becomes escalated conversation without invented help");
+                }
+                if(expected.getInt("schema")<4)for(Store.Entry entry:db.history())for(boolean tag:db.contexts(entry.id))check(!tag,"Old conversations have no invented circumstances");
                 if (expected.has("note")) {
                     check(db.gratitude(expected.getString("day")).equals(expected.getString("note")),"Old gratitude preserved exactly");
                     check(Store.prefs(c).getBoolean("evening",false) && Store.prefs(c).getInt("eveningHour",0)==20 && Store.prefs(c).getInt("eveningMinute",0)==30,"Existing reminder settings preserved");

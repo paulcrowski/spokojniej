@@ -14,31 +14,38 @@ public final class Backup {
     public static final int MAX_BYTES = 5 * 1024 * 1024;
     private static final String FORMAT = "spokojniej-backup";
     public static final class Data {
-        final JSONArray events, gratitude, marks;
+        final JSONArray events, gratitude, marks, done;
         final long started;
         final JSONObject settings;
-        Data(JSONArray e, JSONArray g, JSONArray m, long s, JSONObject p) { events=e; gratitude=g; marks=m; started=s; settings=p; }
+        Data(JSONArray e, JSONArray g, JSONArray m, JSONArray d, long s, JSONObject p) { events=e; gratitude=g; marks=m; done=d; started=s; settings=p; }
         public int eventCount() { return events.length(); }
         public int gratitudeCount() { return gratitude.length(); }
+        public int doneCount() { return done.length(); }
         public int markCount() { return marks.length(); }
     }
     public static final class Result {
-        public int events, gratitude, marks, keptGratitude;
+        public int events, gratitude, marks, done, contexts, keptDone, keptGratitude;
         public boolean settingsRestored;
     }
     private Backup() {}
     public static String export(Context c, Store db) throws JSONException {
         SQLiteDatabase snapshot=db.getReadableDatabase(); snapshot.beginTransaction();
         try {
-        JSONObject root = new JSONObject().put("format", FORMAT).put("version", 2).put("createdAt", System.currentTimeMillis()).put("startedAt", db.started());
+        JSONObject root = new JSONObject().put("format", FORMAT).put("version", 3).put("createdAt", System.currentTimeMillis()).put("startedAt", db.started());
         JSONArray events = new JSONArray();
-        try (Cursor cursor = db.getReadableDatabase().rawQuery("SELECT happened_at,kind,day_key FROM events ORDER BY happened_at,id", null)) {
-            while (cursor.moveToNext()) events.put(new JSONObject().put("at", cursor.getLong(0)).put("kind", cursor.getString(1)).put("day", cursor.isNull(2) ? JSONObject.NULL : cursor.getString(2)));
+        try (Cursor cursor = db.getReadableDatabase().rawQuery("SELECT happened_at,kind,day_key,id FROM events ORDER BY happened_at,id", null)) {
+            while (cursor.moveToNext()) {
+                JSONArray contexts=new JSONArray();boolean[] chosen=db.contexts(cursor.getLong(3));
+                for(int i=0;i<chosen.length;i++)if(chosen[i])contexts.put(Store.CONTEXT_KINDS[i]);
+                events.put(new JSONObject().put("at",cursor.getLong(0)).put("kind",cursor.getString(1)).put("day",cursor.isNull(2)?JSONObject.NULL:cursor.getString(2)).put("contexts",contexts));
+            }
         }
         JSONArray gratitude = new JSONArray();
         for (Store.Gratitude g : db.gratitudeHistory()) gratitude.put(new JSONObject().put("day", g.day).put("note", g.note).put("updatedAt", g.updated));
         JSONArray marks=new JSONArray();
         for (Store.Mark m : db.markHistory()) marks.put(new JSONObject().put("day",m.day).put("kind",m.kind).put("updatedAt",m.updated));
+        JSONArray done=new JSONArray();
+        for(Store.Done item:db.doneHistory()) done.put(new JSONObject().put("id",item.id).put("day",item.day).put("note",item.note).put("updatedAt",item.updated));
         SharedPreferences p = Store.prefs(c);
         JSONObject settings = new JSONObject();
         for (String key : new String[]{"morning", "evening"}) {
@@ -46,7 +53,7 @@ public final class Backup {
             settings.put(key+"Hour", p.getInt(key+"Hour", key.equals("morning") ? 8 : 18));
             settings.put(key+"Minute", p.getInt(key+"Minute", 0));
         }
-        String json = root.put("events", events).put("gratitude", gratitude).put("marks",marks).put("settings", settings).toString(2);
+        String json = root.put("events", events).put("gratitude", gratitude).put("marks",marks).put("done",done).put("settings", settings).toString(2);
         if (json.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) throw new IllegalArgumentException("Kopia przekracza limit 5 MB.");
         return json;
         } finally { snapshot.endTransaction(); }
@@ -77,7 +84,7 @@ public final class Backup {
         if (text.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) throw new JSONException("Kopia przekracza limit 5 MB.");
         JSONObject root = new JSONObject(text);
         long version=number(root,"version");
-        if (!FORMAT.equals(root.optString("format")) || (version!=1 && version!=2)) throw new JSONException("To nie jest obsługiwana kopia Spokojniej.");
+        if (!FORMAT.equals(root.optString("format")) || (version!=1 && version!=2 && version!=3)) throw new JSONException("To nie jest obsługiwana kopia Spokojniej.");
         long started=number(root,"startedAt");
         if (started < 0) throw new JSONException("Nieprawidłowa data rozpoczęcia.");
         JSONArray events=root.getJSONArray("events"), gratitude=root.getJSONArray("gratitude");
@@ -88,6 +95,13 @@ public final class Backup {
             if (at < 0 || !("conflict".equals(kind) || "calm".equals(kind))) throw new JSONException("Nieprawidłowy wpis historii.");
             if ("calm".equals(kind)) { if (!calmDays.add(day(event,"day"))) throw new JSONException("Powtórzony spokojny dzień w kopii."); }
             else if (!event.has("day") || !event.isNull("day")) throw new JSONException("Nieprawidłowy wpis kłótni.");
+            JSONArray contexts=version<3 ? new JSONArray() : event.getJSONArray("contexts");
+            Set<String> selected=new HashSet<>();
+            for(int j=0;j<contexts.length();j++) {
+                Object context=contexts.get(j);
+                if(!(context instanceof String) || !Arrays.asList(Store.CONTEXT_KINDS).contains(context) || !selected.add((String)context) || !"conflict".equals(kind)) throw new JSONException("Nieprawidłowe okoliczności rozmowy.");
+            }
+            event.put("contexts",contexts);
         }
         for (int i=0; i<gratitude.length(); i++) {
             JSONObject g=gratitude.getJSONObject(i); String date=day(g,"day"); Object note=g.get("note");
@@ -100,28 +114,45 @@ public final class Backup {
             JSONObject m=marks.getJSONObject(i); String date=day(m,"day"); Object kind=m.get("kind");
             if (!(kind instanceof String) || Store.markIndex((String)kind)<0 || number(m,"updatedAt")<0 || !identities.add(date+"|"+kind)) throw new JSONException("Nieprawidłowy zapis dnia.");
         }
+        JSONArray done=version<3 ? new JSONArray() : root.getJSONArray("done");
+        if(done.length()>50000) throw new JSONException("Za dużo wpisów Zrobione.");
+        Set<String> doneIds=new HashSet<>();
+        for(int i=0;i<done.length();i++) {
+            JSONObject item=done.getJSONObject(i);day(item,"day");Object id=item.get("id"),note=item.get("note");
+            if(!(id instanceof String) || !((String)id).matches("[a-zA-Z0-9-]{1,80}") || !doneIds.add((String)id) || !(note instanceof String) || ((String)note).trim().isEmpty() || ((String)note).length()>1000 || number(item,"updatedAt")<0) throw new JSONException("Nieprawidłowy wpis Zrobione.");
+        }
         JSONObject settings=root.getJSONObject("settings");
         for (String key : new String[]{"morning", "evening"}) {
             if (!(settings.get(key) instanceof Boolean) || number(settings,key+"Hour")<0 || number(settings,key+"Hour")>23 || number(settings,key+"Minute")<0 || number(settings,key+"Minute")>59) throw new JSONException("Nieprawidłowe ustawienia przypomnień.");
         }
-        return new Data(events,gratitude,marks,started,settings);
+        return new Data(events,gratitude,marks,done,started,settings);
     }
     public static Result restore(Context c, Store store, Data data) throws JSONException {
         SQLiteDatabase db=store.getWritableDatabase(); Result result=new Result();
         // Validate the entire document before the first write, including caller-created data.
-        Data validated=parse(new JSONObject().put("format",FORMAT).put("version",2).put("startedAt",data.started).put("events",data.events).put("gratitude",data.gratitude).put("marks",data.marks).put("settings",data.settings).toString());
-        boolean initiallyEmpty=store.history().isEmpty() && store.gratitudeHistory().isEmpty() && store.markHistory().isEmpty();
+        Data validated=parse(new JSONObject().put("format",FORMAT).put("version",3).put("startedAt",data.started).put("events",data.events).put("gratitude",data.gratitude).put("marks",data.marks).put("done",data.done).put("settings",data.settings).toString());
+        boolean initiallyEmpty=store.history().isEmpty() && store.gratitudeHistory().isEmpty() && store.markHistory().isEmpty() && store.doneHistory().isEmpty();
         db.beginTransaction();
         try {
             Map<String,Integer> occurrences=new HashMap<>();
             for (int i=0;i<validated.events.length();i++) {
                 JSONObject e=validated.events.getJSONObject(i); long at=e.getLong("at"); String kind=e.getString("kind");
                 String identity=kind+"|"+at; int occurrence=occurrences.getOrDefault(identity,0)+1; occurrences.put(identity,occurrence);
-                // Preserve two intentionally recorded events in the same minute while
-                // avoiding multiplication when the same backup is imported again.
-                try (Cursor cursor=db.rawQuery("SELECT COUNT(*) FROM events WHERE happened_at=? AND kind=?",new String[]{String.valueOf(at),kind})) { cursor.moveToFirst(); if (cursor.getInt(0)>=occurrence) continue; }
-                ContentValues v=new ContentValues(); v.put("happened_at",at); v.put("kind",kind); if ("calm".equals(kind)) v.put("day_key",e.getString("day"));
-                if (db.insertWithOnConflict("events",null,v,SQLiteDatabase.CONFLICT_IGNORE)>=0) result.events++;
+                // Ordinal matching preserves separate conversations at the same time.
+                // A calm day matches its date even after a timezone change.
+                long id=-1;
+                String query="calm".equals(kind) ? "SELECT id FROM events WHERE kind='calm' AND day_key=?" : "SELECT id FROM events WHERE happened_at=? AND kind=? ORDER BY id LIMIT 1 OFFSET "+(occurrence-1);
+                String[] args="calm".equals(kind) ? new String[]{e.getString("day")} : new String[]{String.valueOf(at),kind};
+                try(Cursor cursor=db.rawQuery(query,args)){if(cursor.moveToFirst())id=cursor.getLong(0);}
+                if(id<0) {
+                    ContentValues v=new ContentValues();v.put("happened_at",at);v.put("kind",kind);if("calm".equals(kind))v.put("day_key",e.getString("day"));
+                    id=db.insertOrThrow("events",null,v);result.events++;
+                }
+                JSONArray contexts=e.getJSONArray("contexts");
+                for(int j=0;j<contexts.length();j++) {
+                    ContentValues v=new ContentValues();v.put("event_id",id);v.put("kind",contexts.getString(j));
+                    if(db.insertWithOnConflict("event_contexts",null,v,SQLiteDatabase.CONFLICT_IGNORE)>=0)result.contexts++;
+                }
             }
             for (int i=0;i<validated.gratitude.length();i++) {
                 JSONObject g=validated.gratitude.getJSONObject(i); String date=g.getString("day");
@@ -134,6 +165,14 @@ public final class Backup {
                 JSONObject m=validated.marks.getJSONObject(i); ContentValues v=new ContentValues();
                 v.put("day",m.getString("day")); v.put("kind",m.getString("kind")); v.put("updated_at",m.getLong("updatedAt"));
                 if (db.insertWithOnConflict("marks",null,v,SQLiteDatabase.CONFLICT_IGNORE)>=0) result.marks++;
+            }
+            for(int i=0;i<validated.done.length();i++) {
+                JSONObject item=validated.done.getJSONObject(i);String id=item.getString("id");
+                try(Cursor cursor=db.rawQuery("SELECT day,note FROM done WHERE id=?",new String[]{id})) {
+                    if(cursor.moveToFirst()) { if(!cursor.getString(0).equals(item.getString("day")) || !cursor.getString(1).equals(item.getString("note")))result.keptDone++;continue; }
+                }
+                ContentValues v=new ContentValues();v.put("id",id);v.put("day",item.getString("day"));v.put("note",item.getString("note"));v.put("updated_at",item.getLong("updatedAt"));
+                db.insertOrThrow("done",null,v);result.done++;
             }
             db.execSQL("UPDATE meta SET value=MIN(value,?) WHERE name='started'",new Object[]{validated.started});
             db.setTransactionSuccessful();

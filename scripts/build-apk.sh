@@ -10,6 +10,7 @@ export PATH="$TASK_JAVA/bin:$PATH"
 for executable in "$TOOLS/aapt2" "$TOOLS/d8" "$TOOLS/zipalign" "$TOOLS/apksigner" "$TASK_JAVA/bin/javac"; do
     if [ ! -x "$executable" ]; then echo "Missing tool: $executable" >&2; exit 1; fi
 done
+rm -rf build/generated build/classes build/dex
 mkdir -p build/generated build/classes build/dex build/tests signing dist
 "$TASK_JAVA/bin/javac" -encoding UTF-8 -d build/tests app/src/main/java/pl/spokojniej/app/Streaks.java tests/StreaksTest.java
 "$TASK_JAVA/bin/java" -cp build/tests StreaksTest
@@ -28,8 +29,8 @@ if [ ! -f signing/local.keystore ]; then
     umask 077
     "$TASK_JAVA/bin/keytool" -genkeypair -keystore signing/local.keystore -storepass local-spokojniej -keypass local-spokojniej -alias spokojniej -keyalg RSA -keysize 3072 -validity 10000 -dname "CN=Spokojniej Local, O=Spokojniej, C=PL"
 fi
-"$TOOLS/apksigner" sign --ks signing/local.keystore --ks-key-alias spokojniej --ks-pass pass:local-spokojniej --key-pass pass:local-spokojniej --out dist/Spokojniej-1.2.0.apk build/aligned.apk
-"$TOOLS/apksigner" verify --verbose dist/Spokojniej-1.2.0.apk
-"$TOOLS/aapt" dump badging dist/Spokojniej-1.2.0.apk > dist/apk-info-1.2.0.txt
-shasum -a 256 dist/Spokojniej-1.2.0.apk > dist/SHA256SUMS-1.2.0
-echo 'APK: dist/Spokojniej-1.2.0.apk'
+"$TOOLS/apksigner" sign --ks signing/local.keystore --ks-key-alias spokojniej --ks-pass pass:local-spokojniej --key-pass pass:local-spokojniej --out dist/Spokojniej-1.3.0.apk build/aligned.apk
+"$TOOLS/apksigner" verify --verbose dist/Spokojniej-1.3.0.apk
+"$TOOLS/aapt" dump badging dist/Spokojniej-1.3.0.apk > dist/apk-info-1.3.0.txt
+shasum -a 256 dist/Spokojniej-1.3.0.apk > dist/SHA256SUMS-1.3.0
+echo 'APK: dist/Spokojniej-1.3.0.apk'

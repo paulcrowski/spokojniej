@@ -15,8 +15,8 @@ public final class CalmWidget extends AppWidgetProvider {
             for (int id : ids) {
                 RemoteViews views = new RemoteViews(c.getPackageName(), R.layout.widget);
                 views.setTextViewText(R.id.widget_pause, Pause.active(c) ? "Przerwa do " + Pause.returnTime(c) : "Potrzebuję chwili");
-                views.setTextViewText(R.id.widget_status, "Moje małe kroki i wdzięczność  ›");
-                views.setOnClickPendingIntent(R.id.widget_pause, PendingIntent.getActivity(c,51,new Intent(c,MainActivity.class).setAction("pause"),PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+                views.setTextViewText(R.id.widget_status, "Otwórz dziennik  ›");
+                views.setOnClickPendingIntent(R.id.widget_pause, PendingIntent.getActivity(c,51,new Intent(c,MainActivity.class).setAction("pause_start"),PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
                 views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getActivity(c, 50, new Intent(c, MainActivity.class).setAction("home"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
                 manager.updateAppWidget(id, views);
             }

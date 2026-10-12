@@ -7,6 +7,7 @@ TOOLS="$TASK_SDK/build-tools/35.0.0"
 PLATFORM="$TASK_SDK/platforms/android-35/android.jar"
 export JAVA_HOME="$TASK_JAVA"
 export PATH="$TASK_JAVA/bin:$PATH"
+rm -rf build/device-tests/classes build/device-tests/dex
 mkdir -p build/device-tests/classes build/device-tests/dex
 "$TOOLS/aapt2" link -o build/device-tests/resources.apk -I "$PLATFORM" --manifest tests/android/AndroidManifest.xml
 "$TASK_JAVA/bin/javac" -encoding UTF-8 -source 8 -target 8 -bootclasspath "$PLATFORM:$TOOLS/core-lambda-stubs.jar" -cp build/classes -d build/device-tests/classes tests/android/*.java

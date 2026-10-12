@@ -1,57 +1,46 @@
-# Spokojniej
+# Budowanie Spokojniej
 
-Prosta, prywatna aplikacja Android: chwila przed odpowiedzią, dobrowolna wdzięczność i zapisy małych kroków. Zachowuje też historię rozmów i licznik czasu bez kłótni.
+Natywna aplikacja Java bez bibliotek zewnętrznych. Minimum: Android 8 (API 26); kompilacja i target SDK 35. Interfejs po polsku. Opis użytkowy i instalacja: [README](../README.md).
 
-## Instalacja i aktualizacja
+## Narzędzia
 
-Otwórz `dist/Spokojniej-1.2.0.apk` na Androidzie 8 lub nowszym. Android może poprosić o zezwolenie aplikacji Pliki na instalowanie APK. Zainstaluj jako aktualizację na istniejącą aplikację, bez odinstalowywania. Ten sam pakiet i klucz podpisu, wyższy numer wersji (3) oraz migracja SQLite v1/v2 → v3 zachowują dotychczasowe dane. Poprzednie APK pozostają w `dist/`.
-
-Przypomnienia włącz w Ustawieniach i zezwól na powiadomienia Androida. Domyślnie są wyłączone. Poranek: 08:00, przed wieczorem: 18:00. Wcześniej zapisane godziny pozostają zachowane; wybierz godzinę przed swoją trudniejszą porą wieczoru. Możesz włączyć tylko jedno przypomnienie.
-
-Widget dodaj przez przytrzymanie ekranu głównego → Widgety → Spokojniej albo przyciskiem „Dodaj widget” w Ustawieniach, jeśli launcher to obsługuje. Istniejący widget zmienia wygląd po aktualizacji.
-
-## Jak korzystać
-
-- „Potrzebuję chwili”: jedno dotknięcie w aplikacji, widżecie lub powiadomieniu otwiera 10-minutową przerwę z gotowym zdaniem i godziną powrotu. Można przełączyć na 30 sekund. „Zamknij ekran” pozwala odłożyć telefon, zachowując czas końca; „Wracam” kończy przerwę. Przy zgodzie na powiadomienia pojawia się pojedyncze, ciche przypomnienie o powrocie. Android może dostarczyć je później. Przycisk nie oznacza automatycznie udanej rozmowy i niczego nie dopisuje do historii.
-- W spokojnym momencie uzgodnij z bliskimi znaczenie zdania „Potrzebuję chwili. Wrócę o…”. Możesz wypowiedzieć je bez telefonu. Wróć do rozmowy, a jeśli potrzebujesz więcej czasu, uprzedź o tym.
-- „Za co jestem dziś wdzięczny?”: dobrowolna notatka do 2000 znaków. Jedna rzecz wystarczy; można pominąć dzień. Edycja także z historii; pusty zapis usuwa notatkę.
-- „Zapisz mały krok”: zaznacz „Zrobiłem pauzę”, „Powiedziałem swoje spokojnie”, „Wróciłem do rozmowy spokojniej” lub „Było mi trudno”. Kilka wyborów może występować tego samego dnia. „Inny dzień” pozwala uzupełnić zapis później. Odznaczenie usuwa wybrany zapis. Bez punktów i oceny członków rodziny.
-- Historia zachowuje dobre i trudne momenty. Zapis kłótni nie usuwa małych kroków ani wdzięczności.
-- Zapis dnia i licznik znajdują się niżej: „Dziś spokojnie” raz na dzień, „Zapisz kłótnię” z datą i godziną. Wpis kłótni można poprawić lub usunąć w historii; nowy wpis można cofnąć.
-
-Licznik mierzy pełne 24 godziny od najnowszej zapisanej kłótni, a przed pierwszą kłótnią od pierwszego uruchomienia. Brak wpisu nie potwierdza spokojnego dnia. Kłótnia ma pierwszeństwo w statusie dnia, ale nie zmienia pozytywnych zapisów.
-
-Przypomnienie przed wieczorem pyta, jak się czujesz i czy potrzebujesz odpoczynku, jedzenia lub ciszy. Nie wymaga podsumowania ani wdzięczności. Każda włączona pora pojawia się najwyżej raz na dzień, bez ponagleń. Powiadomienia są wyciszone przez grupowanie; na świeżej instalacji kanał ma niską ważność. Prywatna treść na ekranie blokady zależy też od ustawień Androida. Harmonogram wraca po restarcie, zmianie czasu/strefy i aktualizacji. Po wymuszonym zatrzymaniu należy ponownie otworzyć aplikację.
-
-Widget ma bezpośredni przycisk przerwy; dolny napis otwiera główny ekran. Aktualizuje się po zmianach, przy końcu przerwy, zmianie dnia i okresowo (Android: co najmniej 30 minut). Android może opóźnić alarmy oraz odświeżenie podczas uśpienia. Odliczanie na ekranie używa zapamiętanego czasu końca; nie trzeba patrzeć na telefon.
-
-## Kopia i zmiana telefonu
-
-Ustawienia → „Zapisz kopię” → wybierz miejsce w systemowym oknie Androida. Plik JSON zawiera wydarzenia, wdzięczność, małe kroki i trudne chwile, początek liczenia oraz ustawienia przypomnień. Plik przechowuje zwykły tekst wpisów. Sam wybierasz miejsce; aplikacja niczego automatycznie nie wysyła.
-
-Na nowym telefonie zainstaluj APK, wybierz „Wczytaj kopię”, wskaż plik i potwierdź podgląd. Import dodaje brakujące wpisy i nie usuwa obecnych. Powtórny import nie mnoży wpisów, również osobnych kłótni o identycznym czasie. Jeśli wdzięczność na daną datę już istnieje, zachowuje tekst telefonu i informuje o rozbieżności. Wybory dnia łączy po dacie i rodzaju.
-
-Wersja 1.2 odczytuje także kopie z 1.1. Nowe kopie mają format v2, obejmujący małe kroki. Na telefonie bez żadnych wpisów odtwarza też ustawienia przypomnień. Uprawnienie do powiadomień i widget trzeba ustawić osobno w nowym Androidzie. Trwająca przerwa nie jest przenoszona na drugi telefon. Plik jest sprawdzany w całości przed zapisaniem danych, limit 5 MB.
-
-## Prywatność
-
-Lokalna baza SQLite `spokojniej.db`, bez konta, internetu, reklam, analityki i systemowej kopii danych. Jedynie uprawnienia do powiadomień i uruchomienia po restarcie. Aplikacja jest osobistym narzędziem, nie diagnozuje ani nie leczy ADHD lub lęku.
-
-Odinstalowanie lub wyczyszczenie danych usuwa historię z aplikacji. Zachowaj kopię poza nią. Nie ma automatycznej synchronizacji. Licznik i przerwa zależą od zegara telefonu.
-
-## Budowanie i testy
-
-Projekt natywny Java, bez bibliotek zewnętrznych; można otworzyć w Android Studio. Android SDK 35 i JDK Android Studio:
+Android SDK Platform 35, Build Tools 35.0.0 i zgodny JDK. Lokalne sprawdzenia używały JDK z Android Studio na macOS. Można ustawić `JAVA_HOME` oraz `ANDROID_HOME` lub `ANDROID_SDK_ROOT`; domyślne ścieżki wskazują instalację Android Studio na macOS. Skrypty pomocnicze UI wymagają Python 3 i Platform Tools.
 
 ```sh
 bash scripts/build-apk.sh
 bash scripts/build-device-tests.sh
 ```
 
-Inne lokalizacje: `ANDROID_HOME` i `JAVA_HOME`. Skrypt uruchamia 12 sprawdzeń logiki czasu, buduje i podpisuje APK, sprawdza podpis oraz zapisuje sumę. Zachowaj lokalny klucz `signing/local.keystore`, potrzebny do kolejnych aktualizacji; nie publikuj go.
+Pierwszy skrypt wykonuje 12 sprawdzeń czasu i polskiej odmiany, kompiluje zasoby i Java, generuje DEX, wyrównuje i podpisuje APK, sprawdza podpis i zapisuje SHA-256. Wynik: `dist/Spokojniej-1.3.0.apk`. Projekt można otworzyć w Android Studio; repozytorium nie zawiera Gradle wrappera.
 
-Testy urządzenia i skrypty sprawdzające migracje oraz UI uruchamiaj wyłącznie na dedykowanym emulatorze `emulator-5580`: zawierają czyszczenie jego testowych danych. `scripts/verify-upgrade.py` sprawdza aktualizację poprzednich APK; `scripts/verify-android.py` bazę, kopie, przypomnienia i przerwę; `scripts/support-ui-smoke.py` widżet, rzeczywiste ekrany i plik kopii. Stare skrypty UI dotyczą poprzednich wersji.
+## Podpis i aktualizacje
 
-Dowody i ograniczenia: [raport](VALIDATION.md) oraz [zapisane wyniki](validation/v1.2.0/). Zasady [alarmów Androida](https://developer.android.com/develop/background-work/services/alarms) i [wyciszania powiadomień w grupie](https://developer.android.com/reference/android/app/Notification.Builder#setGroupAlertBehavior(int)).
+Oficjalne APK używa tego samego klucza autora co wcześniejsze wydania. Numer wersji wzrósł do 4; migracja SQLite v1/v2/v3 → v4 dodaje nowe tabele bez usuwania dotychczasowych zapisów. Instaluj na obecną aplikację, bez odinstalowania. Kopię można wcześniej zapisać w Ustawieniach.
 
-Historyczne APK 1.0 i 1.1 potrzebne do skryptu migracji nie są częścią publicznego repozytorium. Wyniki migracji zachowano w dokumentacji. Własny klucz z nowego klonu tworzy osobno podpisane APK; nie zastępuje klucza autora i nie umożliwia aktualizacji oficjalnego APK z zachowaniem instalacji.
+Klucz `signing/local.keystore` jest prywatny i wykluczony z repozytorium. Gdy go nie ma, skrypt tworzy własny klucz deweloperski. Stałe hasło w skrypcie służy lokalnemu budowaniu, nie udostępnia klucza autora. APK z innym kluczem nie zaktualizuje oficjalnej instalacji. Zachowaj swój klucz poza repozytorium.
+
+## Dane i zachowanie
+
+SQLite v4 przechowuje wydarzenia, wdzięczność, małe kroki, listę `done` oraz okoliczności `event_contexts`. Wpisy Zrobione mają trwałe identyfikatory UUID. Okoliczności należą do konkretnej rozmowy; usunięcie rozmowy usuwa jej oznaczenia. Spokojny dzień jest identyfikowany datą, a kłótnia ma pierwszeństwo w statusie dnia. Brak wpisu nie potwierdza spokoju. Licznik mierzy pełne 24 godziny od ostatniej kłótni albo pierwszego uruchomienia.
+
+Eksport JSON używa formatu 3; import odczytuje również formaty 1 i 2. Najpierw sprawdza cały plik, do 5 MB, potem zapisuje w transakcji. Import dodaje brakujące wpisy; zachowuje obecne teksty wdzięczności i tego samego wpisu Zrobione. Brakujące oznaczenia rozmów są dodawane. Osobne rozmowy o tej samej godzinie zachowuje przez dopasowanie kolejności. Powtórny import tej samej kopii nie mnoży zapisów. Import wcześniejszego stanu rozmowy po zmianie jej daty/godziny może dodać dawny zapis jako osobne wydarzenie. Na pustej bazie odtwarza też ustawienia przypomnień. Starsze aplikacje nie odczytają formatu 3.
+
+Pauza ma zapisany czas końca w SharedPreferences i alarmie Androida. Zwykłe uruchomienie nie otwiera jej okna; zewnętrzna akcja widżetu lub powiadomienia uruchamia ją świadomie. Powrót do dziennika nie resetuje odliczania. Alarmy i aktualizacje widżetu mogą być opóźniane przez Androida. Po wymuszonym zatrzymaniu trzeba ponownie otworzyć aplikację. Powiadomienia oraz widżet należy osobno skonfigurować na nowym telefonie; trwająca przerwa nie jest kopiowana.
+
+Bez konta, internetu, reklam, analityki, nagrywania rozmów i systemowej kopii danych. Manifest wymaga tylko powiadomień i uruchamiania harmonogramu po restarcie. Odinstalowanie lub wyczyszczenie danych usuwa lokalną bazę; ręczna kopia powinna zostać poza aplikacją.
+
+## Sprawdzenia Androida
+
+Wyłącznie dedykowany, jednorazowy **`emulator-5580`**. Skrypty czyszczą jego dane, a test aktualizacji także odinstalowuje testową aplikację. Nie kieruj ich na prywatny telefon. Pomocniki Python domyślnie używają macOS SDK w `~/Library/Android/sdk`; dla innego systemu dostosuj tę ścieżkę.
+
+```sh
+python3 scripts/verify-android.py
+python3 scripts/diary-ui-smoke.py
+python3 scripts/verify-upgrade.py 1.0.0
+python3 scripts/verify-upgrade.py 1.1.0
+python3 scripts/verify-upgrade.py 1.2.0
+```
+
+Testy obejmują rzeczywistą bazę i akcje powiadomień, wybrany dzień, dane Zrobione i okoliczności, widżet z dwoma obszarami dotyku oraz eksport/import przez systemowe okno plików. Historyczne APK potrzebne do migracji nie są w repozytorium; są dostępne w poprzednich wydaniach GitHub. Stare skrypty UI zachowano jako kod testów poprzednich wersji.
+
+[Raport PL/EN](VALIDATION.md) · [Dowody](validation/v1.3.0/)

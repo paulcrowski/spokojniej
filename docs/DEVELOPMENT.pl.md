@@ -11,7 +11,7 @@ bash scripts/build-apk.sh
 bash scripts/build-device-tests.sh
 ```
 
-Pierwszy skrypt wykonuje 12 sprawdzeń czasu i polskiej odmiany, kompiluje zasoby i Java, generuje DEX, wyrównuje i podpisuje APK, sprawdza podpis i zapisuje SHA-256. Wynik: `dist/Spokojniej-1.4.0.apk`. Projekt można otworzyć w Android Studio; repozytorium nie zawiera Gradle wrappera.
+Pierwszy skrypt wykonuje 12 sprawdzeń czasu i polskiej odmiany, kompiluje zasoby i Java, generuje DEX, wyrównuje i podpisuje APK, sprawdza podpis i zapisuje SHA-256. Wynik: `dist/Spokojniej-1.5.0.apk`. Projekt można otworzyć w Android Studio; repozytorium nie zawiera Gradle wrappera.
 
 ## Podpis i aktualizacje
 

@@ -16,7 +16,7 @@ export ANDROID_HOME="/path/to/your/android-sdk"
 bash scripts/build-apk.sh
 ```
 
-The script runs 12 time-logic checks, compiles resources and Java, generates DEX, aligns and signs the APK, then verifies its signature. Output: `dist/Spokojniej-1.4.0.apk` and its SHA-256 file. The Gradle project files are also provided; there is no Gradle wrapper in this repository.
+The script runs 12 time-logic checks, compiles resources and Java, generates DEX, aligns and signs the APK, then verifies its signature. Output: `dist/Spokojniej-1.5.0.apk` and its SHA-256 file. The Gradle project files are also provided; there is no Gradle wrapper in this repository.
 
 ## Signing and updates
 

@@ -55,6 +55,7 @@ public final class Backup {
             settings.put(key+"Hour", p.getInt(key+"Hour", key.equals("morning") ? 8 : 18));
             settings.put(key+"Minute", p.getInt(key+"Minute", 0));
         }
+        settings.put("reflectCount",p.getInt("reflectCount",0));
         String json = root.put("events", events).put("gratitude", gratitude).put("marks",marks).put("done",done).put("settings", settings).toString(2);
         if (json.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) throw new IllegalArgumentException("Kopia przekracza limit 5 MB.");
         return json;
@@ -130,6 +131,7 @@ public final class Backup {
         for (String key : new String[]{"morning", "evening"}) {
             if (!(settings.get(key) instanceof Boolean) || number(settings,key+"Hour")<0 || number(settings,key+"Hour")>23 || number(settings,key+"Minute")<0 || number(settings,key+"Minute")>59) throw new JSONException("Nieprawidłowe ustawienia przypomnień.");
         }
+        if(settings.has("reflectCount") && (number(settings,"reflectCount")<0 || number(settings,"reflectCount")>4))throw new JSONException("Nieprawidłowa liczba pytań.");
         return new Data(events,gratitude,marks,done,started,settings);
     }
     public static Result restore(Context c, Store store, Data data) throws JSONException {
@@ -188,6 +190,7 @@ public final class Backup {
         if (initiallyEmpty) {
             SharedPreferences.Editor editor=Store.prefs(c).edit();
             for (String key : new String[]{"morning", "evening"}) { editor.putBoolean(key,validated.settings.getBoolean(key)); editor.putInt(key+"Hour",validated.settings.getInt(key+"Hour")); editor.putInt(key+"Minute",validated.settings.getInt(key+"Minute")); }
+            editor.putInt("reflectCount",validated.settings.optInt("reflectCount",0));
             result.settingsRestored=editor.commit();
         }
         return result;

@@ -24,10 +24,11 @@ Spokojniej pomaga zauważać dobre momenty i zrobić sobie chwilę przed odpowie
 - **Zrobione (done list)** — zapisuj to, co już udało Ci się zrobić: kawę, prysznic, spacer, odpoczynek. Lista może rosnąć w ciągu dnia. Wpisy można poprawić lub usunąć, bez celów, punktów i obowiązku codziennego zapisu.
 - **Dziennik wybranego dnia** — strzałka wstecz prowadzi od razu do wczoraj; naciśnij datę, aby wybrać starszy dzień. Spokój, wdzięczność i zrobione rzeczy zapisują się dla tej daty. Historia otwiera ten sam edytowalny dziennik.
 - **„Potrzebuję chwili”** — przerwa 10 minut z gotowym zdaniem i godziną powrotu do rozmowy. Można wybrać 30 sekund. Odliczanie trwa także po wyjściu z aplikacji.
-- **Widżet** — bezpośrednie otwarcie pauzy jednym dotknięciem na ekranie głównym telefonu; osobny napis otwiera wpisy.
+- **Widżet** — trzy wyraźne przyciski: „Zatrzymaj się” uruchamia pauzę, „Jak się czuję?” otwiera krótki wybór, a „Dziennik” prowadzi do wpisów.
 - **Wdzięczność** — jedna dobrowolna notatka na dzień, z możliwością edycji. Można po prostu pominąć dzień.
 - **Małe kroki** — „Zrobiłem pauzę”, „Powiedziałem swoje spokojnie”, „Wróciłem do rozmowy spokojniej”. Można także zaznaczyć „Było mi trudno”. Wybory mogą występować razem, również po trudnym momencie. Zapis można uzupełnić później.
-- **Łagodne przypomnienia** — opcjonalny poranek i chwila przed wieczorem. Domyślne godziny to 08:00 i 18:00; można je zmienić. Przypomnienia są początkowo wyłączone, bez ponagleń i obowiązku podsumowania.
+- **Łagodne przypomnienia** — opcjonalny poranek i chwila przed wieczorem oraz 0–4 losowo rozłożone pytania między 09:00 a 21:00. Pula zawiera 50 krótkich pytań; przypomnienia są początkowo wyłączone.
+- **Kalendarz historii** — pokazuje wpisy Zrobione, wdzięczność i zapisane spokojne dni. Ciemniejsza zieleń oznacza więcej zapisów lub dłuższy ciąg zapisanych spokojnych dni. Pusty dzień pozostaje neutralny.
 - **Trudny moment** — wybierz „Czułem napięcie”, „Zareagowałem impulsywnie” albo „Rozmowa się zaostrzyła”. Dodaj datę i godzinę; opcjonalnie „Co mogło mieć wpływ?” (Praca, Rodzina, Zdrowie, Inna rzecz, Zmęczenie, Choroba, Zaskoczenie) oraz „Co pomogło?” (Przerwa, Spokojna odpowiedź, Powrót do rozmowy, Przeprosiny). Wpis można poprawić lub usunąć. **Samo napięcie nie przerywa licznika i pozwala zapisać spokojny dzień.** Starsze kłótnie są zachowane jako „Rozmowa się zaostrzyła”.
 - **Kopia i nowy telefon** — ręczny eksport i import pliku JSON z historią, rodzajami trudnych momentów, okolicznościami i tym, co pomogło, listą Zrobione, wdzięcznością, małymi krokami oraz ustawieniami przypomnień.
 
@@ -35,7 +36,7 @@ Aplikacja nie wymaga sięgania po telefon w samym impulsie. Możesz użyć wcze�
 
 ### Instalacja APK
 
-1. Pobierz [Spokojniej-1.4.0.apk](https://github.com/paulcrowski/spokojniej/releases/download/v1.4.0/Spokojniej-1.4.0.apk) na telefon z Androidem 8 lub nowszym.
+1. Pobierz [Spokojniej-1.5.0.apk](https://github.com/paulcrowski/spokojniej/releases/download/v1.5.0/Spokojniej-1.5.0.apk) na telefon z Androidem 8 lub nowszym.
 2. Otwórz plik w aplikacji Pliki. Jeśli Android o to poprosi, zezwól tej aplikacji na instalowanie z tego źródła.
 3. Zainstaluj i otwórz Spokojniej. Przy aktualizacji **instaluj na obecną aplikację, bez odinstalowywania** — historia zostanie zachowana.
 4. W Ustawieniach wybierz przypomnienia i zezwól na powiadomienia, jeśli chcesz ich używać. Widget dodaj przez przytrzymanie ekranu głównego → Widgety → Spokojniej.
@@ -58,7 +59,7 @@ Spokojniej jest osobistym narzędziem wspierającym refleksję i komunikację. N
 
 Natywna aplikacja Java, bez bibliotek zewnętrznych. SQLite, AlarmManager, powiadomienia, AppWidget i systemowy wybór pliku Androida.
 
-Wersję 1.4.0 sprawdzono w emulatorze Androida 15: logikę czasu, aktualizacje z APK 1.0 / 1.1 / 1.2 / 1.3, SQLite i kopie, prawdziwe akcje widżetu, zwykłe uruchomienie podczas pauzy oraz eksport/import przez systemowy wybór pliku. Szczegółowe wyniki są w raporcie. Nie są to testy wszystkich fizycznych telefonów ani ograniczeń baterii producentów.
+Wersję 1.4.0 sprawdzono w emulatorze Androida 15; wyniki są w [archiwum testów](docs/validation/v1.4.0). Wersję 1.5.0 skompilowano i sprawdzono podpis APK oraz testy logiki czasu. Nowy widżet i przypomnienia wymagają jeszcze sprawdzenia na urządzeniu.
 
 [Instrukcja budowania](docs/DEVELOPMENT.pl.md) · [Raport PL/EN](docs/VALIDATION.md) · [Dowody testów](docs/validation/v1.4.0)
 
@@ -71,10 +72,11 @@ Spokojniej helps you notice good moments and take a short pause before respondin
 - **Done list** — record what you have already done: making coffee, showering, walking or resting. The list can grow throughout the day. Edit or remove entries without targets, points or a daily obligation.
 - **A diary for the selected day** — the back arrow takes you straight to yesterday; tap the date to choose an older day. Calm check-ins, gratitude and completed actions belong to that date. History opens the same editable diary.
 - **“I need a moment”** — a 10-minute break with a ready-to-use phrase and a return time for the conversation. A 30-second option is also available. The countdown continues when you leave the app.
-- **Home-screen widget** — open a break directly with one tap; a separate label opens your entries.
+- **Home-screen widget** — three clear actions: start a break, check in, or open the diary.
 - **Gratitude** — one optional, editable note per day. Skipping a day is fine.
 - **Small steps** — record taking a pause, expressing your view calmly or returning to a conversation more calmly. You can also record “It was difficult for me.” These choices can coexist, even after a difficult moment, and can be added later.
-- **Gentle reminders** — optional morning and pre-evening prompts. Defaults are 08:00 and 18:00; both are editable. Reminders start disabled, without repeated nudges or mandatory daily summaries.
+- **Gentle reminders** — optional morning and pre-evening prompts, plus 0–4 randomly timed questions between 09:00 and 21:00 from a set of 50. Reminders start disabled.
+- **History calendar** — shows completed items, gratitude, and recorded calm days. Darker green indicates more entries or a longer run of recorded calm days. Empty days remain neutral.
 - **Difficult moment** — choose “I felt tension”, “I reacted impulsively” or “The conversation escalated”. Set the date and time; optionally record “What may have contributed?” (Work, Family, Health, Other, Fatigue, Illness, Surprise) and “What helped?” (A break, A calm response, Returning to the conversation, An apology). Edit or remove entries. **Tension alone does not reset the counter or prevent a calm check-in.** Older arguments are preserved as escalated conversations.
 - **Backup and a new phone** — manually export and import a JSON file containing history, moment types, circumstances and helpful actions, completed actions, gratitude, small steps and reminder settings.
 
@@ -82,7 +84,7 @@ You do not have to reach for your phone during an impulse. You can use an agreed
 
 ### Install the APK
 
-1. Download [Spokojniej-1.4.0.apk](https://github.com/paulcrowski/spokojniej/releases/download/v1.4.0/Spokojniej-1.4.0.apk) to a phone running Android 8 or later.
+1. Download [Spokojniej-1.5.0.apk](https://github.com/paulcrowski/spokojniej/releases/download/v1.5.0/Spokojniej-1.5.0.apk) to a phone running Android 8 or later.
 2. Open it in your Files app. If Android asks, allow that app to install from this source.
 3. Install and open Spokojniej. For updates, **install over the existing app without uninstalling it** to preserve your history.
 4. Enable reminders and allow notifications in Settings if you want them. Add the widget by long-pressing your home screen → Widgets → Spokojniej.
@@ -105,7 +107,7 @@ Spokojniej is a personal tool for reflection and communication. It does not diag
 
 Native Java with no third-party libraries: SQLite, AlarmManager, notifications, AppWidget and Android’s system document picker.
 
-Version 1.4.0 was checked on an Android 15 emulator: time logic, upgrades from APKs 1.0 / 1.1 / 1.2 / 1.3, SQLite and backups, actual widget actions, normal launch during an active pause, and system-picker export/import. Detailed results are in the report. These checks do not cover every physical phone or manufacturer’s battery restrictions.
+Version 1.4.0 was checked on an Android 15 emulator; see the [archived evidence](docs/validation/v1.4.0). Version 1.5.0 has passed compilation, APK signature verification, and time-logic tests. Its new widget and reminders still need device testing.
 
 [Build instructions](docs/DEVELOPMENT.en.md) · [PL/EN validation report](docs/VALIDATION.md) · [Test evidence](docs/validation/v1.4.0)
 

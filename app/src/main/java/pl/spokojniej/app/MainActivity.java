@@ -31,6 +31,7 @@ public final class MainActivity extends Activity {
     private String selectedDay = LocalDate.now().toString();
     private boolean backupBusy;
     private int historyLimit=40;
+    private YearMonth calendarMonth=YearMonth.now();
     private final Runnable refresh = new Runnable() {
         @Override public void run() { if ("home".equals(screen) && pauseDialog==null) refreshHome(); handler.postDelayed(this, 60000); }
     };
@@ -52,6 +53,7 @@ public final class MainActivity extends Activity {
         intent.setAction(null);
         if(pauseDialog!=null) pauseDialog.dismiss();
         if("conflict".equals(action)) { selectedDay=LocalDate.now().toString();showHome(false);editConflict(-1,System.currentTimeMillis()); }
+        else if("checkin".equals(action)) { selectedDay=LocalDate.now().toString();showHome(false);showCheckin(); }
         else if("pause".equals(action) || "pause_start".equals(action) || "pause_done".equals(action)) {
             selectedDay=LocalDate.now().toString();showHome(false);showPause(!"pause_done".equals(action));
         } else if("home".equals(action) || Intent.ACTION_MAIN.equals(action)) {
@@ -134,6 +136,14 @@ public final class MainActivity extends Activity {
         picker.getDatePicker().setMinDate(0);picker.getDatePicker().setMaxDate(System.currentTimeMillis());picker.show();
     }
     private void openDay(String day) {selectedDay=day;showHome(false);}
+    private void showCheckin() {
+        new AlertDialog.Builder(this).setTitle("Jak jest teraz?")
+            .setItems(new String[]{"Czuję napięcie", "Potrzebuję przerwy", "Chcę zapisać coś dobrego", "Otwórz dziennik"},(dialog,which) -> {
+                if(which==0)editConflict(-1,System.currentTimeMillis());
+                else if(which==1)showPause(true);
+                else if(which==2)editGratitude(LocalDate.now().toString());
+            }).setNegativeButton("Później",null).show();
+    }
     private long conflictTimeForDay() {
         LocalDate day=LocalDate.parse(selectedDay);
         return day.equals(LocalDate.now())?System.currentTimeMillis():day.atTime(18,0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
@@ -305,7 +315,8 @@ public final class MainActivity extends Activity {
     }
     private void showHistory() {
         setup("history","Historia");
-        add(text("Wybierz dzień, żeby obejrzeć lub uzupełnić wpisy.",14,MUTED),8);
+        add(text("Dotknij dnia, żeby obejrzeć lub uzupełnić wpisy.",14,MUTED),8);
+        showCalendar();
         add(button("Wybierz datę",false,v -> pickDay(selectedDay,this::openDay)),18);
         TreeSet<String> days=new TreeSet<>(Collections.reverseOrder());
         days.add(LocalDate.now().toString());days.add(LocalDate.now().minusDays(1).toString());
@@ -326,12 +337,52 @@ public final class MainActivity extends Activity {
         }
         if(days.size()>historyLimit)add(button("Pokaż starsze dni",false,v -> {historyLimit+=40;showHistory();}),16);
     }
+    private void showCalendar() {
+        LinearLayout heading=new LinearLayout(this);heading.setGravity(Gravity.CENTER_VERTICAL);
+        Button previous=quiet("‹",v -> {calendarMonth=calendarMonth.minusMonths(1);showHistory();});
+        previous.setContentDescription("Poprzedni miesiąc");previous.setEnabled(calendarMonth.isAfter(YearMonth.of(1970,1)));heading.addView(previous,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        TextView title=text(calendarMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy",PL)),18,INK);title.setGravity(Gravity.CENTER);
+        heading.addView(title,new LinearLayout.LayoutParams(0,-2,1));
+        Button next=quiet("›",v -> {calendarMonth=calendarMonth.plusMonths(1);showHistory();});
+        next.setContentDescription("Następny miesiąc");next.setEnabled(calendarMonth.isBefore(YearMonth.now()));heading.addView(next,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        add(heading,20);
+        String[] weekdays={"Pn","Wt","Śr","Cz","Pt","So","Nd"};
+        LinearLayout labels=new LinearLayout(this);
+        for(String weekday:weekdays) {TextView t=text(weekday,12,MUTED);t.setGravity(Gravity.CENTER);labels.addView(t,new LinearLayout.LayoutParams(0,dp(32),1));}
+        add(labels,2);
+        int offset=calendarMonth.atDay(1).getDayOfWeek().getValue()-1;
+        for(int week=0;week<6;week++) {
+            LinearLayout row=new LinearLayout(this);
+            for(int column=0;column<7;column++) {
+                int dayNumber=week*7+column-offset;
+                if(dayNumber<1 || dayNumber>calendarMonth.lengthOfMonth()) {row.addView(new View(this),new LinearLayout.LayoutParams(0,dp(44),1));continue;}
+                String day=calendarMonth.atDay(dayNumber).toString();
+                if(LocalDate.parse(day).isAfter(LocalDate.now())) {row.addView(new View(this),new LinearLayout.LayoutParams(0,dp(44),1));continue;}
+                int status=db.dayStatus(day),done=db.done(day).size();boolean gratitude=!db.gratitude(day).isEmpty();
+                int amount=done+(gratitude?1:0);for(boolean mark:db.marks(day))if(mark)amount++;
+                int streak=0;
+                if(status==1) {LocalDate cursor=LocalDate.parse(day);while(streak<30&&db.dayStatus(cursor.toString())==1){streak++;cursor=cursor.minusDays(1);}}
+                int color=status==2?Color.rgb(235,224,215):streak>=5||amount>=4?Color.rgb(98,150,116):streak>=3||amount>=2?Color.rgb(163,195,164):amount>0||status==1?Color.rgb(211,226,207):BG;
+                TextView cell=text(""+dayNumber,15,INK);cell.setGravity(Gravity.CENTER);cell.setBackground(shape(color,0));
+                cell.setContentDescription(formatDay(day)+", zrobione: "+done+", wdzięczność: "+(gratitude?"tak":"nie")+", "+(status==1?"zapisany spokojny dzień, ciąg zapisów: "+streak:status==2?"trudny moment":"bez zapisu spokoju"));
+                cell.setOnClickListener(v -> openDay(day));
+                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(40),1);p.setMargins(dp(2),dp(2),dp(2),dp(2));row.addView(cell,p);
+            }
+            add(row,0);
+            if((week+1)*7-offset>=calendarMonth.lengthOfMonth())break;
+        }
+        add(text("Ciemniejsza zieleń: więcej wpisów lub dłuższy ciąg zapisanych spokojnych dni. Pusty dzień niczego nie ocenia.",12,MUTED),8);
+    }
     private void showSettings() {
         setup("settings", "Ustawienia");
         add(text("Krótkie przypomnienia", 20, INK), 28);
         add(text("Wybierz jedną porę przed trudniejszym wieczorem. Poranek też jest opcjonalny. Bez ponagleń i nadrabiania wpisów.", 15, MUTED), 8);
         reminderRow("morning", "Rano · spokojna intencja", 8, 0);
         reminderRow("evening", "Przed wieczorem · chwila dla siebie", 18, 0);
+        add(text("Pytanie w ciągu dnia",20,INK),24);
+        add(text("Losowa pora między 09:00 a 21:00. Krótkie pytanie możesz po prostu pominąć.",14,MUTED),6);
+        String[] counts={"Wyłączone","Raz dziennie","Dwa razy dziennie","Trzy razy dziennie","Cztery razy dziennie"};
+        add(button("Pytania: "+counts[Math.min(4,Math.max(0,Store.prefs(this).getInt("reflectCount",0)))],false,v -> new AlertDialog.Builder(this).setTitle("Ile pytań dziennie?").setSingleChoiceItems(counts,Store.prefs(this).getInt("reflectCount",0),(dialog,choice) -> {Store.prefs(this).edit().putInt("reflectCount",choice).apply();ReminderReceiver.schedule(this);dialog.dismiss();showSettings();if(choice>0&&!ReminderReceiver.allowed(this))enableNotifications();}).setNegativeButton("Anuluj",null).show()),12);
         if (!ReminderReceiver.allowed(this)) {
             add(text("Powiadomienia są wyłączone w Androidzie. Zezwól na nie, aby przypomnienia mogły dotrzeć.", 14, MUTED), 16);
             add(button("Zezwól na powiadomienia", false, v -> enableNotifications()), 10);
@@ -339,7 +390,7 @@ public final class MainActivity extends Activity {
         add(text("Android może dostarczyć przypomnienie z opóźnieniem, szczególnie przy oszczędzaniu baterii.", 12, MUTED), 16);
         line();
         add(text("Widget na ekranie głównym", 20, INK), 22);
-        add(text("Przytrzymaj wolne miejsce na ekranie telefonu → Widgety → Spokojniej. Przycisk „Potrzebuję chwili” od razu uruchamia odliczanie. „Otwórz dziennik” prowadzi do wpisów. Zwykłe otwarcie aplikacji pokazuje dziennik.", 15, MUTED), 8);
+        add(text("Przytrzymaj wolne miejsce na ekranie telefonu → Widgety → Spokojniej. „Zatrzymaj się” uruchamia pauzę. „Jak się czuję?” daje wybór, a „Dziennik” otwiera wpisy.", 15, MUTED), 8);
         if (Build.VERSION.SDK_INT >= 26 && android.appwidget.AppWidgetManager.getInstance(this).isRequestPinAppWidgetSupported()) {
             add(button("Dodaj widget", false, v -> android.appwidget.AppWidgetManager.getInstance(this).requestPinAppWidget(new ComponentName(this, CalmWidget.class), null, null)), 14);
         }
